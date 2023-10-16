@@ -1,10 +1,15 @@
 #include <iostream>
 #include <fstream>
 #include <cmath>
+#include <opencv2/core.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
 #include "hls_stream.h"
 #include "qdtrack.h"
 
 using namespace std;
+using namespace cv;
 
 float  input_image[RESNET_LAYER0_CONV1_IN_CH][RESNET_LAYER0_IN_FM_HEIGHT][RESNET_LAYER0_IN_FM_WIDTH];
 
@@ -1733,10 +1738,14 @@ int main ()
     rpn_load_inputs();
     
     // Read input image
-    ifstream ifs_input_img("/usr/scratch/akamath47/IP2/bin/resnet_backbone/qdtrack_image0.bin", ios::in | ios::binary);
-    ifs_input_img.read((char*)(**input_image), 3*736*1280*sizeof(float));
-    ifs_input_img.close();
-
+    
+    Mat img = imread("./demo_frame0.jpg", IMREAD_COLOR);
+    // cout << "Input Image:" << endl;
+    // cout << img << endl;
+    // ifstream ifs_input_img("./demo_frame0.jpg", ios::in | ios::binary);
+    // ifs_input_img.read((char*)(**input_image), 3*736*1280*sizeof(float));
+    // ifs_input_img.close();
+    // split(img, (OutputArray) resnet_layer0_input_fm);
     // Convert input image data to fixed point
     for(int c = 0; c < RESNET_LAYER0_CONV1_IN_CH; c++)
     {
@@ -1744,12 +1753,11 @@ int main ()
         {
             for(int w = 0; w < RESNET_LAYER0_IN_FM_WIDTH; w++)
             {
-                resnet_layer0_input_fm[c][h][w] = (fm_t) input_image[c][h][w];
+                resnet_layer0_input_fm[c][h][w] =  img.at<fm_t>(c,h,w);
             }
         }
     }
-    
-#ifdef TEST_COMPLETE_MODEL // {
+
     //----------------------------------------------------------------------
     // ResNet50 Top-level wrapper 
     //----------------------------------------------------------------------
@@ -1890,544 +1898,26 @@ int main ()
 
 
     );
-    
-    ifstream ifs_l4_output_golden("/usr/scratch/akamath47/IP2/bin/resnet_backbone/layer4_2_relu.bin", ios::in | ios::binary);
-    ifs_l4_output_golden.read((char*)(**golden_layer4_2_bn3_relu_out), RESNET_LAYER4_CONV3_OUT_CH*RESNET_LAYER4_FM_HEIGHT*RESNET_LAYER4_FM_WIDTH*sizeof(float));    
-    ifs_l4_output_golden.close();
-    
-    for(int f = 0; f < RESNET_LAYER4_CONV3_OUT_CH; f++)
-    {
-        for(int h = 0; h < RESNET_LAYER4_FM_HEIGHT; h++)
-        {
-            for(int w = 0; w < RESNET_LAYER4_FM_WIDTH; w++)
-            {
-                mse += std::pow((golden_layer4_2_bn3_relu_out[f][h][w] - (float) resnet_layer4_output_fm[f][h][w]), 2);
-            }
-        }
-        cout << "Golden Output: " << golden_layer4_2_bn3_relu_out[f][0][0] << std::endl;
-        cout << "Actual Output: " << resnet_layer4_output_fm[f][0][0] << std::endl;
-        cout << std::endl;
-    }
-    
-    mse = mse / (RESNET_LAYER4_CONV3_OUT_CH * RESNET_LAYER4_FM_HEIGHT * RESNET_LAYER4_FM_WIDTH);
-    std::cout << "Layer 4 Output MSE:  " << mse << std::endl;    
-    
-    if(mse < 0.0000001)
-       std::cout << "ResNet-50 Model Verification SUCCESSFUL!!!" << std::endl << std::endl; 
-    else 
-       std::cout << "ResNet-50 Model Verification FAILED :(" << std::endl << std::endl; 
-
-        //-----------------VERIFICATION--------------------//
-    std::cout << "Compute MSE LAYER_0 .... " << std::endl;
-    for(int f = 0; f < FPN_CONV_0_OD; f++)
-    {
-        for(int h = 0; h < FPN_CONV_0_OH; h++)
-        {
-            for(int w = 0; w < FPN_CONV_0_OW; w++)
-            {
-                mse += std::pow((golden_conv_0_golden_output[f][h][w] - (float) fixp_conv_0_output_feature_map[f][h][w]), 2);
-            }
-        }
-        //std::cout << "Golden Output: " << golden_conv_0_golden_output[f][0][0] << std::endl;
-        //std::cout << "Actual Output: " << (float) fixp_conv_0_output_feature_map[f][0][0] << std::endl;
-        //std::cout << std::endl;
-    }
-    
-    mse = mse / (FPN_CONV_0_OD * FPN_CONV_0_OH * FPN_CONV_0_OW);
-    std::cout << "FPN_CONVS_0 Output MSE:  " << mse << std::endl;
-    std::cout << "FPN_CONVS_0 Processing Complete!" << std::endl << std::endl;
-
-    mse = 0.0;    
-    std::cout << "Compute MSE LAYER_1 .... " << std::endl;
-    for(int f = 0; f < FPN_CONV_1_OD; f++)
-    {
-        for(int h = 0; h < FPN_CONV_1_OH; h++)
-        {
-            for(int w = 0; w < FPN_CONV_1_OW; w++)
-            {
-                mse += std::pow((golden_conv_1_golden_output[f][h][w] - (float) fixp_conv_1_output_feature_map[f][h][w]), 2);
-            }
-        }
-        //std::cout << "Golden Output: " << golden_conv_1_golden_output[f][0][0] << std::endl;
-        //std::cout << "Actual Output: " << (float) fixp_conv_1_output_feature_map[f][0][0] << std::endl;
-        //std::cout << std::endl;
-    }
-    
-    mse = mse / (FPN_CONV_1_OD * FPN_CONV_1_OH * FPN_CONV_1_OW);
-    std::cout << "FPN_CONVS_1 Output MSE:  " << mse << std::endl;
-    std::cout << "FPN_CONVS_1 Processing Complete!" << std::endl << std::endl;
-    
-    mse = 0.0;    
-    std::cout << "Compute MSE LAYER_2 .... " << std::endl;
-    for(int f = 0; f < FPN_CONV_2_OD; f++)
-    {
-        for(int h = 0; h < FPN_CONV_2_OH; h++)
-        {
-            for(int w = 0; w < FPN_CONV_2_OW; w++)
-            {
-                mse += std::pow((golden_conv_2_golden_output[f][h][w] - (float) fixp_conv_2_output_feature_map[f][h][w]), 2);
-            }
-        }
-        //std::cout << "Golden Output: " << golden_conv_2_golden_output[f][0][0] << std::endl;
-        //std::cout << "Actual Output: " << (float) fixp_conv_2_output_feature_map[f][0][0] << std::endl;
-        //std::cout << std::endl;
-    }
-    
-    mse = mse / (FPN_CONV_2_OD * FPN_CONV_2_OH * FPN_CONV_2_OW);
-    std::cout << "FPN_CONVS_2 Output MSE:  " << mse << std::endl;
-    std::cout << "FPN_CONVS_2 Processing Complete!" << std::endl << std::endl;
-    
-    mse = 0.0;    
-    std::cout << "Compute MSE LAYER_3 .... " << std::endl;
-    for(int f = 0; f < FPN_CONV_3_OD; f++)
-    {
-        for(int h = 0; h < FPN_CONV_3_OH; h++)
-        {
-            for(int w = 0; w < FPN_CONV_3_OW; w++)
-            {
-                mse += std::pow((golden_conv_3_golden_output[f][h][w] - (float) fixp_conv_3_output_feature_map[f][h][w]), 2);
-            }
-        }
-        //std::cout << "Golden Output: " << golden_conv_3_golden_output[f][0][0] << std::endl;
-        //std::cout << "Actual Output: " << (float) fixp_conv_3_output_feature_map[f][0][0] << std::endl;
-        //std::cout << std::endl;
-    }
-    
-    mse = mse / (FPN_CONV_3_OD * FPN_CONV_3_OH * FPN_CONV_3_OW);
-    std::cout << "FPN_CONVS_3 Output MSE:  " << mse << std::endl;
-    std::cout << "FPN_CONVS_3 Processing Complete!" << std::endl << std::endl;
-
-    // RPN
-    //----------------------------------------------------------------------
-    // Check mse for RPN conv 0
-    //----------------------------------------------------------------------
-    
-    ifstream ifs_l1_output_golden0("/usr/scratch/pchhatrapati3/hls/inputs/rpnoutput0.bin", ios::in | ios::binary);
-    ifs_l1_output_golden0.read((char*)(**fl_rpn_output0_fm), (RPN_CONV_IN_CH)*(RPN_INPUT0_IN_FM_HEIGHT)*(RPN_INPUT0_IN_FM_WIDTH)*sizeof(float));    
-    ifs_l1_output_golden0.close();
-    
-    for(int f = 0; f < RPN_CONV_IN_CH; f++)
-    {
-        for(int h = 0; h < RPN_INPUT0_IN_FM_HEIGHT; h++)
-        {
-            for(int w = 0; w < RPN_INPUT0_IN_FM_WIDTH; w++)
-            {
-                mse += std::pow((fl_rpn_output0_fm[f][h][w] - (float) rpn_output0_fm[f][h][w]), 2);
-                // cout<<rpn_output0_fm[f][h][w]<<" ";
-            }
-            // cout<<endl;
-        }
-        // cout << "Golden Output: " << fl_rpn_output0_fm[f][0][0] << std::endl;
-        // cout << "Actual Output: " << rpn_output0_fm[f][0][0] << std::endl;
-        // cout << std::endl;
-    }
-    
-    mse = mse / ((RPN_CONV_IN_CH)*(RPN_INPUT0_IN_FM_HEIGHT)*(RPN_INPUT0_IN_FM_WIDTH));
-    std::cout << "RPN CONV 0 MSE:  " << mse << std::endl;
-    
-
-    //----------------------------------------------------------------------
-    // Check mse for RPN conv 1
-    //----------------------------------------------------------------------
-    mse = 0;
-
-    ifstream ifs_l1_output_golden1("/usr/scratch/pchhatrapati3/hls/inputs/rpnoutput1.bin", ios::in | ios::binary);
-    ifs_l1_output_golden1.read((char*)(**fl_rpn_output1_fm), (RPN_CONV_IN_CH)*(RPN_INPUT1_IN_FM_HEIGHT)*(RPN_INPUT1_IN_FM_WIDTH)*sizeof(float));    
-    ifs_l1_output_golden1.close();
-    
-    for(int f = 0; f < RPN_CONV_IN_CH; f++)
-    {
-        for(int h = 0; h < RPN_INPUT1_IN_FM_HEIGHT; h++)
-        {
-            for(int w = 0; w < RPN_INPUT1_IN_FM_WIDTH; w++)
-            {
-                mse += std::pow((fl_rpn_output1_fm[f][h][w] - (float) rpn_output1_fm[f][h][w]), 2);
-                // cout<<rpn_output0_fm[f][h][w]<<" ";
-            }
-            // cout<<endl;
-        }
-        // cout << "Golden Output: " << fl_rpn_output0_fm[f][0][0] << std::endl;
-        // cout << "Actual Output: " << rpn_output0_fm[f][0][0] << std::endl;
-        // cout << std::endl;
-    }
-    
-    mse = mse / ((RPN_CONV_IN_CH)*(RPN_INPUT1_IN_FM_HEIGHT)*(RPN_INPUT1_IN_FM_WIDTH));
-    std::cout << "RPN CONV 1 MSE:  " << mse << std::endl;
-    
-
-    //----------------------------------------------------------------------
-    // Check mse for RPN conv 2
-    //----------------------------------------------------------------------
-    mse = 0;
-
-    ifstream ifs_l2_output_golden2("/usr/scratch/pchhatrapati3/hls/inputs/rpnoutput2.bin", ios::in | ios::binary);
-    ifs_l2_output_golden2.read((char*)(**fl_rpn_output2_fm), (RPN_CONV_IN_CH)*(RPN_INPUT2_IN_FM_HEIGHT)*(RPN_INPUT2_IN_FM_WIDTH)*sizeof(float));    
-    ifs_l2_output_golden2.close();
-    
-    for(int f = 0; f < RPN_CONV_IN_CH; f++)
-    {
-        for(int h = 0; h < RPN_INPUT2_IN_FM_HEIGHT; h++)
-        {
-            for(int w = 0; w < RPN_INPUT2_IN_FM_WIDTH; w++)
-            {
-                mse += std::pow((fl_rpn_output2_fm[f][h][w] - (float) rpn_output2_fm[f][h][w]), 2);
-                // cout<<rpn_output0_fm[f][h][w]<<" ";
-            }
-            // cout<<endl;
-        }
-        // cout << "Golden Output: " << fl_rpn_output0_fm[f][0][0] << std::endl;
-        // cout << "Actual Output: " << rpn_output0_fm[f][0][0] << std::endl;
-        // cout << std::endl;
-    }
-    
-    mse = mse / ((RPN_CONV_IN_CH)*(RPN_INPUT2_IN_FM_HEIGHT)*(RPN_INPUT2_IN_FM_WIDTH));
-    std::cout << "RPN CONV 2 MSE:  " << mse << std::endl;
-    
-
-    //----------------------------------------------------------------------
-    // Check mse for RPN conv 3
-    //----------------------------------------------------------------------
-    mse = 0;
-
-    ifstream ifs_l3_output_golden3("/usr/scratch/pchhatrapati3/hls/inputs/rpnoutput3.bin", ios::in | ios::binary);
-    ifs_l3_output_golden3.read((char*)(**fl_rpn_output3_fm), (RPN_CONV_IN_CH)*(RPN_INPUT3_IN_FM_HEIGHT)*(RPN_INPUT3_IN_FM_WIDTH)*sizeof(float));    
-    ifs_l3_output_golden3.close();
-    
-    for(int f = 0; f < RPN_CONV_IN_CH; f++)
-    {
-        for(int h = 0; h < RPN_INPUT3_IN_FM_HEIGHT; h++)
-        {
-            for(int w = 0; w < RPN_INPUT3_IN_FM_WIDTH; w++)
-            {
-                mse += std::pow((fl_rpn_output3_fm[f][h][w] - (float) rpn_output3_fm[f][h][w]), 2);
-                // cout<<rpn_output3_fm[f][h][w]<<" ";
-                // if((fl_rpn_output3_fm[f][h][w] - (float) rpn_output3_fm[f][h][w]>0.00001) || (fl_rpn_output3_fm[f][h][w] - (float) rpn_output3_fm[f][h][w]<-0.001)) cout<<f<<" "<<h<<" "<<w<<" "<<rpn_output3_fm[f][h][w]<<" "<<fl_rpn_output3_fm[f][h][w]<<endl;
-            }
-            // cout<<endl;
-        }
-        // cout << "Golden Output: " << fl_rpn_output0_fm[f][0][0] << std::endl;
-        // cout << "Actual Output: " << rpn_output0_fm[f][0][0] << std::endl;
-        // cout << std::endl;
-    }
-    
-    mse = mse / ((RPN_CONV_IN_CH)*(RPN_INPUT3_IN_FM_HEIGHT)*(RPN_INPUT3_IN_FM_WIDTH));
-    std::cout << "RPN CONV 3 MSE:  " << mse << std::endl;
-
-    //----------------------------------------------------------------------
-    // Check mse for RPN conv 4
-    //----------------------------------------------------------------------
-    mse = 0;
-
-    ifstream ifs_l4_output_golden4("/usr/scratch/pchhatrapati3/hls/inputs/rpnoutput4.bin", ios::in | ios::binary);
-    ifs_l4_output_golden4.read((char*)(**fl_rpn_output4_fm), (RPN_CONV_IN_CH)*(RPN_INPUT4_IN_FM_HEIGHT)*(RPN_INPUT4_IN_FM_WIDTH)*sizeof(float));    
-    ifs_l4_output_golden4.close();
-    
-    for(int f = 0; f < RPN_CONV_IN_CH; f++)
-    {
-        for(int h = 0; h < RPN_INPUT4_IN_FM_HEIGHT; h++)
-        {
-            for(int w = 0; w < RPN_INPUT4_IN_FM_WIDTH; w++)
-            {
-                mse += std::pow((fl_rpn_output4_fm[f][h][w] - (float) rpn_output4_fm[f][h][w]), 2);
-                // if((fl_rpn_output4_fm[f][h][w] - (float) rpn_output4_fm[f][h][w]>0.00001) || (fl_rpn_output4_fm[f][h][w] - (float) rpn_output4_fm[f][h][w]<-0.001)) cout<<f<<" "<<h<<" "<<w<<" "<<rpn_output4_fm[f][h][w]<<" "<<fl_rpn_output4_fm[f][h][w]<<endl;
-            }
-            // cout<<endl;
-        }
-        // cout << "Golden Output: " << fl_rpn_output0_fm[f][0][0] << std::endl;
-        // cout << "Actual Output: " << rpn_output0_fm[f][0][0] << std::endl;
-        // cout << std::endl;
-    }
-    
-    mse = mse / ((RPN_CONV_IN_CH)*(RPN_INPUT4_IN_FM_HEIGHT)*(RPN_INPUT4_IN_FM_WIDTH));
-    std::cout << "RPN CONV 4 MSE:  " << mse << std::endl;
-
-    //----------------------------------------------------------------------
-    // Check mse for RPN cls 0
-    //----------------------------------------------------------------------
-    
-    ifstream ifs_l1_output_golden_cls0("/usr/scratch/pchhatrapati3/hls/inputs/rpnclsoutput0.bin", ios::in | ios::binary);
-    ifs_l1_output_golden_cls0.read((char*)(**fl_rpn_output0_cls_fm), (RPN_CLS_OUT_CH)*(RPN_INPUT0_IN_FM_HEIGHT)*(RPN_INPUT0_IN_FM_WIDTH)*sizeof(float));    
-    ifs_l1_output_golden_cls0.close();
-    
-    for(int f = 0; f < RPN_CLS_OUT_CH; f++)
-    {
-        for(int h = 0; h < RPN_INPUT0_IN_FM_HEIGHT; h++)
-        {
-            for(int w = 0; w < RPN_INPUT0_IN_FM_WIDTH; w++)
-            {
-                mse += std::pow((fl_rpn_output0_cls_fm[f][h][w] - (float) rpn_output0_cls_fm[f][h][w]), 2);
-                // cout<<rpn_output0_fm[f][h][w]<<" ";
-            }
-            // cout<<endl;
-        }
-        // cout << "Golden Output: " << fl_rpn_output0_fm[f][0][0] << std::endl;
-        // cout << "Actual Output: " << rpn_output0_fm[f][0][0] << std::endl;
-        // cout << std::endl;
-    }
-    
-    mse = mse / ((RPN_CLS_OUT_CH)*(RPN_INPUT0_IN_FM_HEIGHT)*(RPN_INPUT0_IN_FM_WIDTH));
-    std::cout << "RPN CLS 0 MSE:  " << mse << std::endl;
-    
-
-    //----------------------------------------------------------------------
-    // Check mse for RPN CLS 1
-    //----------------------------------------------------------------------
-    mse = 0;
-
-    ifstream ifs_l1_output_golden_cls1("/usr/scratch/pchhatrapati3/hls/inputs/rpnclsoutput1.bin", ios::in | ios::binary);
-    ifs_l1_output_golden_cls1.read((char*)(**fl_rpn_output1_cls_fm), (RPN_CLS_OUT_CH)*(RPN_INPUT1_IN_FM_HEIGHT)*(RPN_INPUT1_IN_FM_WIDTH)*sizeof(float));    
-    ifs_l1_output_golden_cls1.close();
-    
-    for(int f = 0; f < RPN_CLS_OUT_CH; f++)
-    {
-        for(int h = 0; h < RPN_INPUT1_IN_FM_HEIGHT; h++)
-        {
-            for(int w = 0; w < RPN_INPUT1_IN_FM_WIDTH; w++)
-            {
-                mse += std::pow((fl_rpn_output1_cls_fm[f][h][w] - (float) rpn_output1_cls_fm[f][h][w]), 2);
-                // cout<<rpn_output0_fm[f][h][w]<<" ";
-            }
-            // cout<<endl;
-        }
-        // cout << "Golden Output: " << fl_rpn_output0_fm[f][0][0] << std::endl;
-        // cout << "Actual Output: " << rpn_output0_fm[f][0][0] << std::endl;
-        // cout << std::endl;
-    }
-    
-    mse = mse / ((RPN_CLS_OUT_CH)*(RPN_INPUT1_IN_FM_HEIGHT)*(RPN_INPUT1_IN_FM_WIDTH));
-    std::cout << "RPN CLS 1 MSE:  " << mse << std::endl;
-    
-
-    //----------------------------------------------------------------------
-    // Check mse for RPN CLS 2
-    //----------------------------------------------------------------------
-    mse = 0;
-
-    ifstream ifs_l2_output_golden_cls2("/usr/scratch/pchhatrapati3/hls/inputs/rpnclsoutput2.bin", ios::in | ios::binary);
-    ifs_l2_output_golden_cls2.read((char*)(**fl_rpn_output2_cls_fm), (RPN_CLS_OUT_CH)*(RPN_INPUT2_IN_FM_HEIGHT)*(RPN_INPUT2_IN_FM_WIDTH)*sizeof(float));    
-    ifs_l2_output_golden_cls2.close();
-    
-    for(int f = 0; f < RPN_CLS_OUT_CH; f++)
-    {
-        for(int h = 0; h < RPN_INPUT2_IN_FM_HEIGHT; h++)
-        {
-            for(int w = 0; w < RPN_INPUT2_IN_FM_WIDTH; w++)
-            {
-                mse += std::pow((fl_rpn_output2_cls_fm[f][h][w] - (float) rpn_output2_cls_fm[f][h][w]), 2);
-                // cout<<rpn_output0_fm[f][h][w]<<" ";
-            }
-            // cout<<endl;
-        }
-        // cout << "Golden Output: " << fl_rpn_output0_fm[f][0][0] << std::endl;
-        // cout << "Actual Output: " << rpn_output0_fm[f][0][0] << std::endl;
-        // cout << std::endl;
-    }
-    
-    mse = mse / ((RPN_CLS_OUT_CH)*(RPN_INPUT2_IN_FM_HEIGHT)*(RPN_INPUT2_IN_FM_WIDTH));
-    std::cout << "RPN CLS 2 MSE:  " << mse << std::endl;
-    
-
-    //----------------------------------------------------------------------
-    // Check mse for RPN cls 3
-    //----------------------------------------------------------------------
-    mse = 0;
-
-    ifstream ifs_l3_output_golden_cls3("/usr/scratch/pchhatrapati3/hls/inputs/rpnclsoutput3.bin", ios::in | ios::binary);
-    ifs_l3_output_golden_cls3.read((char*)(**fl_rpn_output3_cls_fm), (RPN_CLS_OUT_CH)*(RPN_INPUT3_IN_FM_HEIGHT)*(RPN_INPUT3_IN_FM_WIDTH)*sizeof(float));    
-    ifs_l3_output_golden_cls3.close();
-    
-    for(int f = 0; f < RPN_CLS_OUT_CH; f++)
-    {
-        for(int h = 0; h < RPN_INPUT3_IN_FM_HEIGHT; h++)
-        {
-            for(int w = 0; w < RPN_INPUT3_IN_FM_WIDTH; w++)
-            {
-                mse += std::pow((fl_rpn_output3_cls_fm[f][h][w] - (float) rpn_output3_cls_fm[f][h][w]), 2);
-            }
-        }
-    }
-    
-    mse = mse / ((RPN_CLS_OUT_CH)*(RPN_INPUT3_IN_FM_HEIGHT)*(RPN_INPUT3_IN_FM_WIDTH));
-    std::cout << "RPN CLS 3 MSE:  " << mse << std::endl;
-
-    //----------------------------------------------------------------------
-    // Check mse for RPN cls 4
-    //----------------------------------------------------------------------
-    mse = 0;
-
-    ifstream ifs_l4_output_golden_cls4("/usr/scratch/pchhatrapati3/hls/inputs/rpnclsoutput4.bin", ios::in | ios::binary);
-    ifs_l4_output_golden_cls4.read((char*)(**fl_rpn_output4_cls_fm), (RPN_CLS_OUT_CH)*(RPN_INPUT4_IN_FM_HEIGHT)*(RPN_INPUT4_IN_FM_WIDTH)*sizeof(float));    
-    ifs_l4_output_golden_cls4.close();
-    
-    for(int f = 0; f < RPN_CLS_OUT_CH; f++)
-    {
-        for(int h = 0; h < RPN_INPUT4_IN_FM_HEIGHT; h++)
-        {
-            for(int w = 0; w < RPN_INPUT4_IN_FM_WIDTH; w++)
-            {
-                mse += std::pow((fl_rpn_output4_cls_fm[f][h][w] - (float) rpn_output4_cls_fm[f][h][w]), 2);
-            }
-        }
-    }
-    
-    mse = mse / ((RPN_CLS_OUT_CH)*(RPN_INPUT4_IN_FM_HEIGHT)*(RPN_INPUT4_IN_FM_WIDTH));
-    std::cout << "RPN CLS 4 MSE:  " << mse << std::endl;
-
-        //----------------------------------------------------------------------
-    // Check mse for RPN reg 0
-    //----------------------------------------------------------------------
-    
-    ifstream ifs_l1_output_golden_reg0("/usr/scratch/pchhatrapati3/hls/inputs/rpnregoutput0.bin", ios::in | ios::binary);
-    ifs_l1_output_golden_reg0.read((char*)(**fl_rpn_output0_reg_fm), (RPN_REG_OUT_CH)*(RPN_INPUT0_IN_FM_HEIGHT)*(RPN_INPUT0_IN_FM_WIDTH)*sizeof(float));    
-    ifs_l1_output_golden_reg0.close();
-    
-    for(int f = 0; f < RPN_REG_OUT_CH; f++)
-    {
-        for(int h = 0; h < RPN_INPUT0_IN_FM_HEIGHT; h++)
-        {
-            for(int w = 0; w < RPN_INPUT0_IN_FM_WIDTH; w++)
-            {
-                mse += std::pow((fl_rpn_output0_reg_fm[f][h][w] - (float) rpn_output0_reg_fm[f][h][w]), 2);
-                // cout<<rpn_output0_fm[f][h][w]<<" ";
-            }
-            // cout<<endl;
-        }
-        // cout << "Golden Output: " << fl_rpn_output0_fm[f][0][0] << std::endl;
-        // cout << "Actual Output: " << rpn_output0_fm[f][0][0] << std::endl;
-        // cout << std::endl;
-    }
-    
-    mse = mse / ((RPN_REG_OUT_CH)*(RPN_INPUT0_IN_FM_HEIGHT)*(RPN_INPUT0_IN_FM_WIDTH));
-    std::cout << "RPN REG 0 MSE:  " << mse << std::endl;
-    
-
-    //----------------------------------------------------------------------
-    // Check mse for RPN REG 1
-    //----------------------------------------------------------------------
-    mse = 0;
-
-    ifstream ifs_l1_output_golden_reg1("/usr/scratch/pchhatrapati3/hls/inputs/rpnregoutput1.bin", ios::in | ios::binary);
-    ifs_l1_output_golden_reg1.read((char*)(**fl_rpn_output1_reg_fm), (RPN_REG_OUT_CH)*(RPN_INPUT1_IN_FM_HEIGHT)*(RPN_INPUT1_IN_FM_WIDTH)*sizeof(float));    
-    ifs_l1_output_golden_reg1.close();
-    
-    for(int f = 0; f < RPN_REG_OUT_CH; f++)
-    {
-        for(int h = 0; h < RPN_INPUT1_IN_FM_HEIGHT; h++)
-        {
-            for(int w = 0; w < RPN_INPUT1_IN_FM_WIDTH; w++)
-            {
-                mse += std::pow((fl_rpn_output1_reg_fm[f][h][w] - (float) rpn_output1_reg_fm[f][h][w]), 2);
-                // cout<<rpn_output0_fm[f][h][w]<<" ";
-            }
-            // cout<<endl;
-        }
-        // cout << "Golden Output: " << fl_rpn_output0_fm[f][0][0] << std::endl;
-        // cout << "Actual Output: " << rpn_output0_fm[f][0][0] << std::endl;
-        // cout << std::endl;
-    }
-    
-    mse = mse / ((RPN_REG_OUT_CH)*(RPN_INPUT1_IN_FM_HEIGHT)*(RPN_INPUT1_IN_FM_WIDTH));
-    std::cout << "RPN REG 1 MSE:  " << mse << std::endl;
-    
-
-    //----------------------------------------------------------------------
-    // Check mse for RPN REG 2
-    //----------------------------------------------------------------------
-    mse = 0;
-
-    ifstream ifs_l2_output_golden_reg2("/usr/scratch/pchhatrapati3/hls/inputs/rpnregoutput2.bin", ios::in | ios::binary);
-    ifs_l2_output_golden_reg2.read((char*)(**fl_rpn_output2_reg_fm), (RPN_REG_OUT_CH)*(RPN_INPUT2_IN_FM_HEIGHT)*(RPN_INPUT2_IN_FM_WIDTH)*sizeof(float));    
-    ifs_l2_output_golden_reg2.close();
-    
-    for(int f = 0; f < RPN_REG_OUT_CH; f++)
-    {
-        for(int h = 0; h < RPN_INPUT2_IN_FM_HEIGHT; h++)
-        {
-            for(int w = 0; w < RPN_INPUT2_IN_FM_WIDTH; w++)
-            {
-                mse += std::pow((fl_rpn_output2_reg_fm[f][h][w] - (float) rpn_output2_reg_fm[f][h][w]), 2);
-                // cout<<rpn_output0_fm[f][h][w]<<" ";
-            }
-            // cout<<endl;
-        }
-        // cout << "Golden Output: " << fl_rpn_output0_fm[f][0][0] << std::endl;
-        // cout << "Actual Output: " << rpn_output0_fm[f][0][0] << std::endl;
-        // cout << std::endl;
-    }
-    
-    mse = mse / ((RPN_REG_OUT_CH)*(RPN_INPUT2_IN_FM_HEIGHT)*(RPN_INPUT2_IN_FM_WIDTH));
-    std::cout << "RPN REG 2 MSE:  " << mse << std::endl;
-    
-
-    //----------------------------------------------------------------------
-    // Check mse for RPN reg 3
-    //----------------------------------------------------------------------
-    mse = 0;
-
-    ifstream ifs_l3_output_golden_reg3("/usr/scratch/pchhatrapati3/hls/inputs/rpnregoutput3.bin", ios::in | ios::binary);
-    ifs_l3_output_golden_reg3.read((char*)(**fl_rpn_output3_reg_fm), (RPN_REG_OUT_CH)*(RPN_INPUT3_IN_FM_HEIGHT)*(RPN_INPUT3_IN_FM_WIDTH)*sizeof(float));    
-    ifs_l3_output_golden_reg3.close();
-    
-    for(int f = 0; f < RPN_REG_OUT_CH; f++)
-    {
-        for(int h = 0; h < RPN_INPUT3_IN_FM_HEIGHT; h++)
-        {
-            for(int w = 0; w < RPN_INPUT3_IN_FM_WIDTH; w++)
-            {
-                mse += std::pow((fl_rpn_output3_reg_fm[f][h][w] - (float) rpn_output3_reg_fm[f][h][w]), 2);
-            }
-        }
-    }
-    
-    mse = mse / ((RPN_REG_OUT_CH)*(RPN_INPUT3_IN_FM_HEIGHT)*(RPN_INPUT3_IN_FM_WIDTH));
-    std::cout << "RPN REG 3 MSE:  " << mse << std::endl;
-
-    //----------------------------------------------------------------------
-    // Check mse for RPN reg 4
-    //----------------------------------------------------------------------
-    mse = 0;
-
-    ifstream ifs_l4_output_golden_reg4("/usr/scratch/pchhatrapati3/hls/inputs/rpnregoutput4.bin", ios::in | ios::binary);
-    ifs_l4_output_golden_reg4.read((char*)(**fl_rpn_output4_reg_fm), (RPN_REG_OUT_CH)*(RPN_INPUT4_IN_FM_HEIGHT)*(RPN_INPUT4_IN_FM_WIDTH)*sizeof(float));    
-    ifs_l4_output_golden_reg4.close();
-    
-    for(int f = 0; f < RPN_REG_OUT_CH; f++)
-    {
-        for(int h = 0; h < RPN_INPUT4_IN_FM_HEIGHT; h++)
-        {
-            for(int w = 0; w < RPN_INPUT4_IN_FM_WIDTH; w++)
-            {
-                mse += std::pow((fl_rpn_output4_reg_fm[f][h][w] - (float) rpn_output4_reg_fm[f][h][w]), 2);
-            }
-        }
-    }
-    
-    mse = mse / ((RPN_REG_OUT_CH)*(RPN_INPUT4_IN_FM_HEIGHT)*(RPN_INPUT4_IN_FM_WIDTH));
-    std::cout << "RPN REG 4 MSE:  " << mse << std::endl;
-    
-    // TODO
-    mse = 0;
-
-    ifstream ifs_l4_output_golden_bbox("/usr/scratch/pchhatrapati3/hls/inputs/rpndets.bin", ios::in | ios::binary);
-    ifs_l4_output_golden_bbox.read((char*)(*fl_dets), (1000)*5*sizeof(float));    
-    ifs_l4_output_golden_bbox.close();
-    
+    cout << "Displaying Result..." << endl;
+    //overlay bboxes
     for(int f = 0; f < 1000; f++)
     {
-        for(int h = 0; h < 5; h++)
-        {
-            mse += std::pow((fl_dets[f][h] - (float) dets[f][h]), 2);   
+        fm_t *bbox = bboxes[f];
+        cout << "BBOX: (" << bbox[0] << "," << bbox[1] << "), (" << bbox[2] << "," << bbox[3] << ")" <<endl; 
+        if (bbox[0] == bbox[2] || bbox[1] == bbox[3]) {
+            cout << "False BBOX Detected, omitting display..." << endl;
+            continue;
+        }
+        rectangle(img, Point(bbox[0], bbox[1]), Point(bbox[2], bbox[3]), Scalar(0, 255, 255));
+        // for(int h = 0; h < 5; h++)
+        // {
+            
+            // mse += std::pow((fl_dets[f][h] - (float) dets[f][h]), 2);   
             // if(abs(fl_dets[f][h] - (float) dets[f][h])>0.1) cout<<f<<" "<<h<<" "<<dets[f][h]<<" "<<fl_dets[f][h]<<endl;
             
-        }
+        // }
         
     }
-    
-    mse = mse / (1000*4);
-    std::cout << "RPN DETS MSE:  " << mse << std::endl;
-
-
-#endif // }
-
+    imshow("Display Window", img);
     return 0;
 }
