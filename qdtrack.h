@@ -1,15 +1,15 @@
 #ifndef QDTRACK_H
 #define QDTRACK_H
 
-#include "hls_stream.h"
+// #include "hls_stream.h"
 #include <iostream>
-#include <ap_int.h>
-#include <ap_fixed.h>
+// #include <ap_int.h>
+// #include <ap_fixed.h>
 
 //--------------------------------------------------------------------------
 // Compiler Defines
 //--------------------------------------------------------------------------
-#define CSIM_DEBUG
+#define CSIM_DEBUG 1
 
 #define TEST_COMPLETE_MODEL
  #define TEST_RPN_CLS

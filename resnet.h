@@ -1,10 +1,10 @@
 #ifndef RESNET_H
 #define RESNET_H
 
-#include "hls_stream.h"
+// #include "hls_stream.h"
 #include <iostream>
-#include <ap_int.h>
-#include <ap_fixed.h>
+// #include <ap_int.h>
+// #include <ap_fixed.h>
 
 //--------------------------------------------------------------------------
 // Compiler Defines

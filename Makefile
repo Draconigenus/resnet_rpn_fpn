@@ -1,28 +1,34 @@
-AUTOPILOT_ROOT :=/tools/software/xilinx/Vitis_HLS/2021.1/
-OPENCV_ROOT :=/nethome/ctalley7/Senior_Design/build/install/
+# AUTOPILOT_ROOT :=/tools/software/xilinx/Vitis_HLS/2021.1/
+# OPENCV_ROOT :=/home/ubuntu/ConnorTalley/build/install/
 
 ASSEMBLE_SRC_ROOT := .
 TB_ROOT := .
-IFLAG += -I "${AUTOPILOT_ROOT}/include"
-IFLAG += -I "${ASSEMBLE_SRC_ROOT}"
-IFLAG += -I "${ASSEMBLE_SRC_ROOT}"
-IFLAG += -I "${OPENCV_ROOT}/include/opencv4"
+# IFLAG += -I "${AUTOPILOT_ROOT}/include"
+# IFLAG += -I "${ASSEMBLE_SRC_ROOT}"
+# IFLAG += -I "${ASSEMBLE_SRC_ROOT}"
+# IFLAG += -I "${OPENCV_ROOT}/include/opencv4"
 # IFLAG += -I "${TB_ROOT}"
-IFLAG += -I "/usr/include/x86_64-linux-gnu"
-IFLAG += -D__SIM_FPO__ -D__SIM_OPENCV__ -D__SIM_FFT__ -D__SIM_FIR__ -D__SIM_DDS__ -D__DSP48E1__
+# IFLAG += -I "/usr/include/x86_64-linux-gnu"
+# IFLAG += -D__SIM_FPO__ -D__SIM_OPENCV__ -D__SIM_FFT__ -D__SIM_FIR__ -D__SIM_DDS__ -D__DSP48E1__
+ 
+# IFLAG += -I "/nethome/ctalley7/Senior_Design/mingw64/usr/lib/gcc/x86_64-w64-mingw32/7.2.0/include"
 
-IFLAG += -I "/nethome/ctalley7/Senior_Design/mingw64/usr/lib/gcc/x86_64-w64-mingw32/7.2.0/include"
-
-IFLAG +=  -g 
-CFLAG += -fPIC -std=c++11 -O3 -mcmodel=large #-fsanitize=address
+# IFLAG +=  -g 
+# CFLAG += -fPIC -std=c++11 -O3 -mcmodel=large #-fsanitize=address
 # CFLAG += -fPIC -03 -std=c++11 -mcmodel=large #-fsanitize=address
-CC      = g++ 
+
+
+
+CFLAG += -fno-PIC -std=c++11 -O0 -mcmodel=large #-fsanitize=address
+
+
+CC      = g++ -g
 # CC = ../mingw64/usr/bin/x86_64-w64-mingw32-g++
 
-LFLAG += -L "${OPENCV_ROOT}/lib64"
+# LFLAG += -L "${OPENCV_ROOT}/lib64"
 # LFLAG += -L "/nethome/ctalley7/Senior_Design/mingw64/usr/x86_64-w64-mingw32/sys-root/mingw/lib"
 
-CVFLAG += `pkg-config --cflags --libs opencv4`
+# CVFLAG += `pkg-config --cflags --libs opencv4`
 # CVLIBS += -lopencv_core -lopencv_imgproc -lopencv_highgui
 
 ALLOUT+= csim.out
@@ -116,6 +122,11 @@ opencv_test.out: ./opencv_test.cpp
 	$(CC) $(GCOV) $(CFLAG) -MMD $^ $(IFLAG) $(LFLAG) -o $@ $(CVFLAG)
 	./opencv_test.out
 	@$(MAKE) -s clean
+
+basic_test.out: ./basic_test.cpp
+	$(CC) $(GCOV) $(CFLAG) -MMD $^ $(IFLAG) $(LFLAG) -o $@ $(CVFLAG)
+	./basic_test.out
+#	@$(MAKE) -s clean
 
 # opencv_test: ./opencv_test.cpp
 # 	export PKG_CONFIG_PATH=${OPENCV_ROOT}/lib64/pkgconfig:/usr/lib64/pkgconfig

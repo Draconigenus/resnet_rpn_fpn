@@ -1,8 +1,8 @@
 #ifndef RESNET_H
 
 #include <iostream>
-#include <ap_int.h>
-#include <ap_fixed.h>
+// #include <ap_int.h>
+// #include <ap_fixed.h>
 
 #define CSIM_DEBUG
 
