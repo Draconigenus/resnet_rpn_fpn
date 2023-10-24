@@ -1,5 +1,5 @@
 # AUTOPILOT_ROOT :=/tools/software/xilinx/Vitis_HLS/2021.1/
-# OPENCV_ROOT :=/home/ubuntu/ConnorTalley/build/install/
+ OPENCV_ROOT :=../build/install
 
 ASSEMBLE_SRC_ROOT := .
 TB_ROOT := .
@@ -28,7 +28,7 @@ CC      = g++ -g
 # LFLAG += -L "${OPENCV_ROOT}/lib64"
 # LFLAG += -L "/nethome/ctalley7/Senior_Design/mingw64/usr/x86_64-w64-mingw32/sys-root/mingw/lib"
 
-# CVFLAG += `pkg-config --cflags --libs opencv4`
+ CVFLAG += `pkg-config --cflags --libs opencv4`
 # CVLIBS += -lopencv_core -lopencv_imgproc -lopencv_highgui
 
 ALLOUT+= csim.out
@@ -114,14 +114,13 @@ main.o:./tb_test_top.cpp
 
 csim.out: main.o $(IP_DEP)
 	$(CC)  $(GCOV)  $(CFLAG) -MMD $(IFLAG)  -o $@  $^ && ./csim.out
-	@$(MAKE) -s clean
 
-opencv_test.out: export PKG_CONFIG_PATH=${OPENCV_ROOT}/lib64/pkgconfig:/usr/lib64/pkgconfig
-opencv_test.out: export LD_LIBRARY_PATH:=$(LD_LIBRARY_PATH):${OPENCV_ROOT}/lib64
+
+opencv_test.out: export PKG_CONFIG_PATH=${OPENCV_ROOT}/lib/pkgconfig:/usr/lib/pkgconfig
+opencv_test.out: export LD_LIBRARY_PATH:=$(LD_LIBRARY_PATH):${OPENCV_ROOT}/lib
 opencv_test.out: ./opencv_test.cpp
 	$(CC) $(GCOV) $(CFLAG) -MMD $^ $(IFLAG) $(LFLAG) -o $@ $(CVFLAG)
 	./opencv_test.out
-	@$(MAKE) -s clean
 
 basic_test.out: ./basic_test.cpp
 	$(CC) $(GCOV) $(CFLAG) -MMD $^ $(IFLAG) $(LFLAG) -o $@ $(CVFLAG)
@@ -133,12 +132,12 @@ basic_test.out: ./basic_test.cpp
 # 	$(CC) opencv_test.cpp `pkg-config --cflags --libs --static opencv4` `pkg-config --cflags --libs gtk+-3.0`
 #   $(CC) opencv_test.cpp -I "${OPENCV_ROOT}/include/opencv4" -L "${OPENCV_ROOT}/lib64" -lopencv_imgproc -lopencv_highgui -lopencv_core -o opencv_test `pkg-config --cflags --libs --static opencv4`
 
-jpg_test.out: export PKG_CONFIG_PATH=${OPENCV_ROOT}/lib64/pkgconfig:/usr/lib64/pkgconfig
+jpg_test.out: export PKG_CONFIG_PATH=${OPENCV_ROOT}/lib/pkgconfig:/usr/lib/pkgconfig
 jpg_test.out: ./tb_test_jpg.cpp
 	$(CC) $(GCOV) $(CFLAG) -MMD -c $^ $(IFLAG) -I "${ASSEMBLE_SRC_ROOT}" -o $@
 
-jpg.out: export PKG_CONFIG_PATH=${OPENCV_ROOT}/lib64/pkgconfig:/usr/lib64/pkgconfig
-jpg.out: export LD_LIBRARY_PATH:=$(LD_LIBRARY_PATH):${OPENCV_ROOT}/lib64
+jpg.out: export PKG_CONFIG_PATH=${OPENCV_ROOT}/lib/pkgconfig:/usr/lib/pkgconfig
+jpg.out: export LD_LIBRARY_PATH:=$(LD_LIBRARY_PATH):${OPENCV_ROOT}/lib
 jpg.out: jpg_test.out $(IP_DEP)
 	$(CC)  $(GCOV)  $(CFLAG) -MMD $^ $(IFLAG) -o $@ $(CVFLAG) 
 	./jpg.out
